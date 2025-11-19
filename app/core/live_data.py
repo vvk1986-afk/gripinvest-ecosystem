@@ -1,0 +1,52 @@
+import yfinance as yf
+
+# The NIFTY 50 List (Official NSE Tickers)
+NIFTY_50 = [
+    'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS', 'BHARTIARTL.NS', 
+    'ITC.NS', 'SBIN.NS', 'LICI.NS', 'HINDUNILVR.NS', 'LT.NS', 'BAJFINANCE.NS', 
+    'HCLTECH.NS', 'KOTAKBANK.NS', 'AXISBANK.NS', 'SUNPHARMA.NS', 'TITAN.NS', 
+    'ADANIENT.NS', 'ULTRACEMCO.NS', 'ASIANPAINT.NS', 'NTPC.NS', 'MARUTI.NS', 
+    'POWERGRID.NS', 'BAJAJFINSV.NS', 'TATAMOTORS.NS', 'COALINDIA.NS', 'ONGC.NS', 
+    'M&M.NS', 'WIPRO.NS', 'ADANIPORTS.NS', 'JSWSTEEL.NS', 'NESTLEIND.NS', 
+    'TATASTEEL.NS', 'HDFCLIFE.NS', 'SBILIFE.NS', 'GRASIM.NS', 'TECHM.NS', 
+    'HINDALCO.NS', 'CIPLA.NS', 'BRITANNIA.NS', 'TATACONSUM.NS', 'EICHERMOT.NS', 
+    'DRREDDY.NS', 'DIVISLAB.NS', 'APOLLOHOSP.NS', 'BAJAJ-AUTO.NS', 'HEROMOTOCO.NS', 
+    'UPL.NS', 'INDUSINDBK.NS', 'BPCL.NS'
+]
+
+def fetch_live_nifty_data(progress_callback=None):
+    # No more print statements here to keep the logs clean!
+    live_data = []
+    total_stocks = len(NIFTY_50)
+    
+    for i, ticker in enumerate(NIFTY_50):
+        try:
+            # Update the Progress Bar in the Browser
+            if progress_callback:
+                progress_callback(i / total_stocks, f"Scanning {ticker}...")
+
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            
+            # Extract Data
+            stock_data = {
+                "ticker": ticker.replace('.NS', ''),
+                "sector": info.get('sector', 'Unknown').upper(),
+                "current_price": info.get('currentPrice', 0),
+                "roe": (info.get('returnOnEquity', 0) or 0) * 100,
+                "debt_to_equity": info.get('debtToEquity', 0) / 100,
+                "eps": info.get('trailingEps', 0),
+                "bvps": info.get('bookValue', 0)
+            }
+            
+            # Sector Cleanup
+            if "BANK" in stock_data['sector']: stock_data['sector'] = "BANKING"
+            if "TECH" in stock_data['sector']: stock_data['sector'] = "IT"
+            if "FINANCIAL" in stock_data['sector']: stock_data['sector'] = "FINANCE"
+            
+            live_data.append(stock_data)
+            
+        except Exception as e:
+            pass # Skip failed downloads silently
+            
+    return live_data
