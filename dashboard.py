@@ -1,3 +1,8 @@
+import sys
+import os
+# Fix: Add the current directory to Python's path so it finds the 'app' folder
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -58,4 +63,5 @@ with tab3:
     st.markdown("### High-Yield Fixed Income")
     if st.button("Find Bonds"):
         assets = StabilityEngine().get_safe_assets(min_yield=10.0)
+
         st.table(pd.DataFrame(assets))
