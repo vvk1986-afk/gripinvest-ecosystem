@@ -1,3 +1,18 @@
+import os
+import sys
+
+# --- DEBUG SONAR ---
+print("📍 Current Location:", os.getcwd())
+print("📂 Files here:", os.listdir())
+if os.path.exists("app"):
+    print("✅ 'app' folder found! Contents:", os.listdir("app"))
+else:
+    print("❌ 'app' folder NOT found here!")
+sys.path.append(os.getcwd())
+# -------------------
+
+import streamlit as st
+# (Rest of your code follows...)
 import sys
 import os
 # Fix: Add the current directory to Python's path so it finds the 'app' folder
@@ -65,3 +80,4 @@ with tab3:
         assets = StabilityEngine().get_safe_assets(min_yield=10.0)
 
         st.table(pd.DataFrame(assets))
+
