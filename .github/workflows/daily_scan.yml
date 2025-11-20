@@ -1,0 +1,34 @@
+name: Daily Market Scan
+
+on:
+  schedule:
+    # 9:30 AM, 11:00 AM, 12:30 PM, 2:00 PM, 3:30 PM (IST)
+    - cron: '0 4 * * *'
+    - cron: '30 5 * * *'
+    - cron: '0 7 * * *'
+    - cron: '30 8 * * *'
+    - cron: '0 10 * * *'
+  workflow_dispatch: # Allows manual run
+
+jobs:
+  scan_and_alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Libraries
+        run: |
+          pip install pandas yfinance requests
+
+      - name: Run Alert Script
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
+        run: python alert_system.py
