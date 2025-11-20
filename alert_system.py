@@ -1,14 +1,18 @@
 import smtplib
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 
-# Fix path so we can import from 'app'
+# --- PATH FIX ---
+# We add the 'app' folder to the system path so we can import 'core' directly
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app'))
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from app.core.legends_engine import LegendsEngine
-from app.core.live_data import fetch_live_nifty_data
+
+# --- UPDATED IMPORTS (Notice we removed 'app.') ---
+from core.legends_engine import LegendsEngine
+from core.live_data import fetch_live_nifty_data
 
 # SECRETS (Loaded from GitHub Actions)
 SENDER_EMAIL = os.environ.get("EMAIL_USER")
