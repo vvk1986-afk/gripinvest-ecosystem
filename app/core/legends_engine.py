@@ -1,38 +1,39 @@
 import pandas as pd
-import numpy as np
 
 class LegendsEngine:
-    def __init__(self):
-        # Rakesh Jhunjhunwala's Sector Weights
-        self.sector_weights = {
-            'BANKING': 1.2,
-            'INFRASTRUCTURE': 1.15,
-            'CONSUMPTION': 1.1,
-            'IT': 1.0
-        }
-
-    def calculate_graham_number(self, eps: float, bvps: float) -> float:
-        if eps < 0 or bvps < 0: return 0.0
-        return np.sqrt(22.5 * eps * bvps)
-
     def screen_stocks(self, raw_data: list):
         df = pd.DataFrame(raw_data)
         if df.empty: return []
 
-        # 1. Buffett Filter: ROE > 15% and Debt/Equity < 0.5
-        df_filtered = df[
-            (df['roe'] > 15.0) & (df['debt_to_equity'] < 0.5)
-        ].copy()
-
-        # 2. Big Bull Sector Boost
-        df_filtered['sector_multiplier'] = df_filtered['sector'].map(self.sector_weights).fillna(1.0)
-
-        # 3. Calculate Graham Number
-        df_filtered['graham_num'] = df_filtered.apply(
-            lambda x: self.calculate_graham_number(x['eps'], x['bvps']), axis=1
-        )
-
-        # 4. Final Score
-        df_filtered['legend_score'] = df_filtered['roe'] * df_filtered['sector_multiplier']
+        # --- NEW SCORING LOGIC (The 100 Point Scale) ---
         
-        return df_filtered.sort_values(by='legend_score', ascending=False).to_dict(orient='records')
+        # 1. ROE Score (30% Weight): Capped at 30 points
+        df['score_roe'] = df['roe'].clip(upper=30)
+        
+        # 2. Debt Score (30% Weight): Lower is better
+        # If Debt is 0, score is 30. If Debt is > 2, score is 0.
+        df['score_debt'] = 30 * (1 - (df['debt_to_equity'] / 2))
+        df['score_debt'] = df['score_debt'].clip(lower=0)
+        
+        # 3. Growth Score (20% Weight): Sales Growth
+        df['score_growth'] = df['sales_growth'].clip(upper=20)
+        
+        # 4. Valuation Score (20% Weight): P/E Ratio
+        # Ideal P/E is < 25. If P/E > 50, score drops.
+        df['score_val'] = 20 - (df['pe_ratio'] / 50 * 20)
+        df['score_val'] = df['score_val'].clip(lower=0)
+        
+        # --- FINAL COMPOSITE SCORE ---
+        df['legend_score'] = (
+            df['score_roe'] + 
+            df['score_debt'] + 
+            df['score_growth'] + 
+            df['score_val']
+        ).round(1)
+
+        # Clean up Formatting for UI
+        df['roe'] = df['roe'].round(2)
+        df['debt_to_equity'] = df['debt_to_equity'].round(2)
+        df['pe_ratio'] = df['pe_ratio'].round(2)
+        
+        return df.sort_values(by='legend_score', ascending=False).to_dict(orient='records')
