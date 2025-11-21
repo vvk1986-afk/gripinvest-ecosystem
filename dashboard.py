@@ -33,22 +33,29 @@ with tab1:
         results = engine.screen_stocks(raw)
         df = pd.DataFrame(results)
         
-        # 3 Quick Wins: Metric Cards
-        top_pick = df.iloc[0]
-        col1, col2, col3 = st.columns(3)
-        col1.metric("🏆 #1 Legend", top_pick['ticker'], f"Score: {top_pick['legend_score']}")
-        col2.metric("📊 Avg Portfolio ROE", f"{df.head(10)['roe'].mean():.1f}%")
-        col3.metric("📉 Lowest Debt Pick", df.sort_values('debt_to_equity').iloc[0]['ticker'])
+        if not df.empty:
+            # 3 Quick Wins: Metric Cards
+            top_pick = df.iloc[0]
+            col1, col2, col3 = st.columns(3)
+            col1.metric("🏆 #1 Legend", top_pick['ticker'], f"Score: {top_pick['legend_score']}")
+            col2.metric("📊 Avg Portfolio ROE", f"{df.head(10)['roe'].mean():.1f}%")
+            col3.metric("📉 Lowest Debt Pick", df.sort_values('debt_to_equity').iloc[0]['ticker'])
 
-        # Detailed Dataframe with Gradient
-        st.subheader("The Shortlist (Weighted Score)")
-        
-        # Gradient Coloring: Green for High Score, Red for Low
-        st.dataframe(
-            df[['ticker', 'sector', 'current_price', 'roe', 'debt_to_equity', 'pe_ratio', 'sales_growth', 'legend_score']]
-            .style.background_gradient(subset=['legend_score'], cmap='RdYlGn', vmin=50, vmax=90),
-            use_container_width=True
-        )
+            # Detailed Dataframe with Gradient
+            st.subheader("The Shortlist (Weighted Score)")
+            
+            # Gradient Coloring: Green for High Score, Red for Low
+            # We use a try-except block to prevent styling crashes if data is empty
+            try:
+                st.dataframe(
+                    df[['ticker', 'sector', 'current_price', 'roe', 'debt_to_equity', 'pe_ratio', 'sales_growth', 'legend_score']]
+                    .style.background_gradient(subset=['legend_score'], cmap='RdYlGn', vmin=50, vmax=90),
+                    use_container_width=True
+                )
+            except:
+                st.dataframe(df) # Fallback if styling fails
+        else:
+            st.warning("No data returned from scanner.")
 
 # --- TAB 2: STABILITY (Bonds) ---
 with tab2:
