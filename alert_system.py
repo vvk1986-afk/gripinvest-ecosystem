@@ -17,79 +17,73 @@ SENDER_PASSWORD = os.environ.get("EMAIL_PASS")
 RECEIVER_EMAIL = os.environ.get("EMAIL_RECEIVER")
 
 def send_email(subject, body):
-    print(f"📧 Preparing to send email to: {RECEIVER_EMAIL}")
-    
     try:
-        # Handle Multiple Receivers (Comma Separated)
         if "," in RECEIVER_EMAIL:
             recipients = [e.strip() for e in RECEIVER_EMAIL.split(",")]
         else:
             recipients = [RECEIVER_EMAIL]
 
         msg = MIMEMultipart()
-        msg['From'] = f"GripInvest Robot <{SENDER_EMAIL}>"
+        msg['From'] = f"GripInvest Bot <{SENDER_EMAIL}>"
         msg['To'] = ", ".join(recipients)
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain'))
 
-        # Connect to Gmail
-        print("🔌 Connecting to Gmail SMTP...")
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
-        
-        # Login
-        print("🔑 Logging in...")
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        
-        # Send
-        print("🚀 Sending message...")
         server.sendmail(SENDER_EMAIL, recipients, msg.as_string())
-        
         server.quit()
-        print("✅ EMAIL SENT SUCCESSFULLY! (Check Spam/Promotions folders)")
-        return True
-        
+        print(f"✅ Email Sent to {len(recipients)} recipients!")
     except Exception as e:
-        print(f"❌ CRITICAL ERROR: {e}")
-        return False
+        print(f"❌ Email Error: {e}")
 
 def run_scan():
-    print("🕵️ Starting Scan...")
+    print("🕵️ Running Production Market Scan...")
     
-    # 1. Fetch Data
     raw_data = fetch_live_nifty_data()
-    if not raw_data:
-        print("❌ Error: No data fetched from NSE.")
-        return
-
-    # 2. Analyze
     engine = LegendsEngine()
     results = engine.screen_stocks(raw_data)
     
-    # 3. Filter (Relaxed for testing: ROE > 10%)
-    # We lower the bar to ENSURE we find stocks so the email triggers
-    gems = [s for s in results if s['roe'] > 10.0]
+    # --- TRIGGER 1: The Legends (Investments) ---
+    # Strict Filter: High ROE + Low Debt
+    legends = [s for s in results if s['roe'] > 20.0 and s['debt_to_equity'] < 0.5]
     
-    if gems:
-        # Time Setup
+    # --- TRIGGER 2: The Movers (Trading) ---
+    # Absolute price change > 3.5%
+    movers = [s for s in results if abs(s.get('change_p', 0)) >= 3.5]
+    
+    # Combine unique alerts
+    all_alerts = {s['ticker']: s for s in legends + movers}.values()
+    
+    if all_alerts:
         ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
         time_str = ist_now.strftime("%I:%M %p")
         
-        print(f"💎 Found {len(gems)} stocks. Triggering email.")
+        print(f"🚀 Found {len(all_alerts)} relevant alerts.")
         
-        body = f"GripInvest Test Alert [{time_str}]\n\n"
-        body += f"Found {len(gems)} stocks (Test Mode):\n"
-        for g in gems[:5]: # List top 5 only
-            body += f"- {g['ticker']} (ROE: {g['roe']:.1f}%)\n"
+        body = f"GripInvest+3 Market Pulse [{time_str}]\n\n"
+        
+        if movers:
+            body += "🚨 HIGH VOLATILITY (>3.5%):\n"
+            for m in movers:
+                icon = "📈" if m['change_p'] > 0 else "📉"
+                body += f"{icon} {m['ticker']}: {m['change_p']:.2f}% (Price: {m['current_price']})\n"
+            body += "\n"
             
-        subject = f"Test Alert {time_str}: {len(gems)} Stocks Found"
+        if legends:
+            body += "💎 QUALITY PICKS (ROE > 20%):\n"
+            for l in legends:
+                body += f"• {l['ticker']} | ROE: {l['roe']:.1f}% | Debt: {l['debt_to_equity']}\n"
+
+        body += "\nAnalyze Dashboard: https://gripinvest.streamlit.app/"
         
         if SENDER_EMAIL and SENDER_PASSWORD:
-            send_email(subject, body)
+            send_email(f"🚨 Market Alert ({time_str})", body)
         else:
-            print("⚠️ Secrets are MISSING. Cannot send email.")
+            print("⚠️ No secrets found.")
     else:
-        print("😴 No stocks found (Unlikely with 10% ROE filter).")
+        print("😴 Market is quiet. No alerts met the strict criteria.")
 
 if __name__ == "__main__":
     run_scan()
