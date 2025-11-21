@@ -1,6 +1,6 @@
 import yfinance as yf
 
-# The NIFTY 50 List
+# NIFTY 50 List
 NIFTY_50 = [
     'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS', 'BHARTIARTL.NS', 
     'ITC.NS', 'SBIN.NS', 'LICI.NS', 'HINDUNILVR.NS', 'LT.NS', 'BAJFINANCE.NS', 
@@ -26,24 +26,15 @@ def fetch_live_nifty_data(progress_callback=None):
             stock = yf.Ticker(ticker)
             info = stock.info
             
-            # Calculate Day Change %
-            curr = info.get('currentPrice', 0)
-            prev = info.get('previousClose', 0)
-            
-            if prev > 0:
-                change_p = ((curr - prev) / prev) * 100
-            else:
-                change_p = 0.0
-
+            # --- NEW DATA POINTS FOR V2 ---
             stock_data = {
                 "ticker": ticker.replace('.NS', ''),
                 "sector": info.get('sector', 'Unknown').upper(),
-                "current_price": curr,
-                "change_p": change_p,  # <--- NEW FIELD
+                "current_price": info.get('currentPrice', 0),
                 "roe": (info.get('returnOnEquity', 0) or 0) * 100,
                 "debt_to_equity": info.get('debtToEquity', 0) / 100,
-                "eps": info.get('trailingEps', 0),
-                "bvps": info.get('bookValue', 0)
+                "pe_ratio": info.get('trailingPE', 0) or 0,            # New: P/E
+                "sales_growth": (info.get('revenueGrowth', 0) or 0) * 100  # New: Growth
             }
             
             # Sector Cleanup
